@@ -1,0 +1,50 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>de.kobich</groupId>
+	<artifactId>commons-ui-jface</artifactId>
+	<version>9.0</version>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>17</java.version>
+	</properties>
+	
+	<dependencies>
+		<dependency>
+			<groupId>de.kobich</groupId>
+			<artifactId>commons</artifactId>
+			<version>9.0</version>
+		</dependency>
+
+		<dependency>
+		    <groupId>org.eclipse.platform</groupId>
+		    <artifactId>org.eclipse.ui</artifactId>
+		    <version>3.204.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.eclipse.swt</groupId>
+		    <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
+		    <version>4.3</version>
+		    <scope>provided</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.11.0</version>
+				<configuration>
+					<release>${java.version}</release>
+					<compilerArgs>
+						<arg>--add-modules</arg>
+						<arg>java.net.http</arg>
+					</compilerArgs>
+					<forceJavacCompilerUse>true</forceJavacCompilerUse>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
