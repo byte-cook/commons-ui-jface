@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.kobich</groupId>
 	<artifactId>commons-ui-jface</artifactId>
-	<version>9.0</version>
+	<version>9.1</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
