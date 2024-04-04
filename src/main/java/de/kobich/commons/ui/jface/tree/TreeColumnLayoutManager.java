@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.eclipse.jface.layout.TreeColumnLayout;
 import org.eclipse.jface.viewers.ColumnWeightData;
+import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
@@ -18,17 +19,17 @@ import lombok.Setter;
  */
 public class TreeColumnLayoutManager {
 	private final Composite parent;
-	private final Tree tree;
+	private final TreeViewer treeViewer;
 	private final TreeColumnLayout treeColumnLayout;
 	private final List<TreeColumnData> columns;
 	@Setter
 	private ITreeColumnProvider treeColumnProvider;
 	
-	public TreeColumnLayoutManager(Composite parent, Tree tree) {
+	public TreeColumnLayoutManager(Composite parent, TreeViewer treeViewer) {
 		this.parent = parent;
-		this.tree = tree;
+		this.treeViewer = treeViewer;
 		this.columns = new ArrayList<>();
-		this.treeColumnProvider = new TreeColumnProvider(tree);
+		this.treeColumnProvider = new TreeColumnProvider(treeViewer.getTree());
 		if (parent.getLayout() instanceof TreeColumnLayout layout) {
 			this.treeColumnLayout = layout;
 		}
@@ -53,9 +54,13 @@ public class TreeColumnLayoutManager {
 		
 	}
 	public void updateColumns() {
+		Tree tree = treeViewer.getTree();
 		try {
 			tree.setRedraw(false);
+			// save state
 			final TreeItem[] selection = tree.getSelection();
+			final int scrollSelection = tree.getVerticalBar().getSelection();
+			final Object[] expandedElements = treeViewer.getExpandedElements();
 			
 			// remove all columns
 			for (TreeColumn c : tree.getColumns()) {
@@ -65,8 +70,10 @@ public class TreeColumnLayoutManager {
 			// create visible columns
 			createColumns();
 			
-			// restore selection
+			// restore state
 			tree.setSelection(selection);
+			tree.getVerticalBar().setSelection(scrollSelection);
+			treeViewer.setExpandedElements(expandedElements);
 		}
 		finally {
 			// redraw
