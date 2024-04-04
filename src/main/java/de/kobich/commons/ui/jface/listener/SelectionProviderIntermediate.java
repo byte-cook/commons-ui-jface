@@ -17,7 +17,6 @@ import de.kobich.commons.ListenerList;
  * @author ckorn
  */
 public class SelectionProviderIntermediate implements IPostSelectionProvider {
-	private static final ISelectionProvider DUMMY = new DummySelectionProvider();
 	private final ListenerList<ISelectionChangedListener> selectionListeners;
 	private final ListenerList<ISelectionChangedListener> postSelectionListeners;
 	private ISelectionProvider delegate;
@@ -25,7 +24,7 @@ public class SelectionProviderIntermediate implements IPostSelectionProvider {
 	public SelectionProviderIntermediate() {
 		this.selectionListeners = new ListenerList<ISelectionChangedListener>();
 		this.postSelectionListeners = new ListenerList<ISelectionChangedListener>();
-		this.delegate = DUMMY;
+		this.delegate = DummySelectionProvider.INSTANCE;
 	}
 
 	public void setSelectionProviderDelegate(ISelectionProvider newDelegate) {
@@ -33,7 +32,7 @@ public class SelectionProviderIntermediate implements IPostSelectionProvider {
 			return;
 		}
 		ISelectionProvider oldDelegate = this.delegate;
-		this.delegate = newDelegate == null ? DUMMY : newDelegate;
+		this.delegate = newDelegate == null ? DummySelectionProvider.INSTANCE : newDelegate;
 
 		// old delegate
 		for (ISelectionChangedListener l : selectionListeners) {
@@ -92,27 +91,6 @@ public class SelectionProviderIntermediate implements IPostSelectionProvider {
 		if (this.delegate instanceof IPostSelectionProvider) {
 			((IPostSelectionProvider) this.delegate).removePostSelectionChangedListener(l);
 		}
-	}
-
-	private static final class DummySelectionProvider implements ISelectionProvider {
-
-		@Override
-		public void setSelection(ISelection selection) {
-		}
-
-		@Override
-		public ISelection getSelection() {
-			return null;
-		}
-
-		@Override
-		public void addSelectionChangedListener(ISelectionChangedListener l) {
-		}
-
-		@Override
-		public void removeSelectionChangedListener(ISelectionChangedListener l) {
-		}
-
 	};
 
 }
