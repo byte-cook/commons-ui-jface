@@ -1,8 +1,11 @@
 package de.kobich.commons.ui.jface.tree;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.jface.layout.TreeColumnLayout;
 import org.eclipse.jface.viewers.ColumnWeightData;
@@ -12,23 +15,29 @@ import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
 
+import de.kobich.commons.ui.memento.IMementoItem;
+import de.kobich.commons.ui.memento.IMementoItemSerializable;
 import lombok.Setter;
 
 /**
  * This tree column manager allows to show/hide columns.
  */
-public class TreeColumnLayoutManager {
+public class TreeColumnLayoutManager implements IMementoItemSerializable {
+	private final String STATE_VISIBLE_COLUMNS = "visibleColumns";
 	private final Composite parent;
 	private final TreeViewer treeViewer;
 	private final TreeColumnLayout treeColumnLayout;
 	private final List<TreeColumnData> columns;
+	@Nullable
+	private final IMementoItem mementoItem;
 	@Setter
 	private ITreeColumnProvider treeColumnProvider;
 	
-	public TreeColumnLayoutManager(Composite parent, TreeViewer treeViewer) {
+	public TreeColumnLayoutManager(Composite parent, TreeViewer treeViewer, @Nullable IMementoItem mementoItem) {
 		this.parent = parent;
 		this.treeViewer = treeViewer;
 		this.columns = new ArrayList<>();
+		this.mementoItem = mementoItem;
 		this.treeColumnProvider = new TreeColumnProvider(treeViewer.getTree());
 		if (parent.getLayout() instanceof TreeColumnLayout layout) {
 			this.treeColumnLayout = layout;
@@ -109,6 +118,29 @@ public class TreeColumnLayoutManager {
 	
 	public Optional<Object> getElementByIndex(int index) {
 		return Optional.ofNullable(getVisibleColumns().get(index).getElement());
+	}
+	
+	@Override
+	public void saveState() {
+		if (mementoItem == null) {
+			throw new IllegalStateException("Memento item is not set");
+		}
+		mementoItem.putArray(STATE_VISIBLE_COLUMNS, getVisibleColumns().stream().map(TreeColumnData::getText).toList().toArray(new String[0]));
+	}
+	
+	@Override
+	public void restoreState() {
+		if (mementoItem == null) {
+			throw new IllegalStateException("Memento item is not set");
+		}
+		String[] savedColumns = mementoItem.getArray(STATE_VISIBLE_COLUMNS);
+		if (savedColumns != null) {
+			List<String> savedColumnList = Arrays.asList(savedColumns);
+			for (TreeColumnData column : this.columns) {
+				boolean visible = savedColumnList.contains(column.getText());
+				column.setVisible(visible);
+			}
+		}
 	}
 
 }
