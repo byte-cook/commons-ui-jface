@@ -42,8 +42,12 @@ public class MementoUtils {
 	}
 	
 	public static IMementoItem getMementoItemToSave(IDialogSettings settings) {
-		IMementoItem mementoItem = new DialogSettingsAdapter(settings);
-		return mementoItem;
+		return new DialogSettingsAdapter(settings);
+	}
+	
+	public static IMementoItem getMementoItemToSave(IDialogSettings settings, String name) {
+		IDialogSettings dialogSettings = getDialogBoundsSettings(settings, name);
+		return new DialogSettingsAdapter(dialogSettings);
 	}
 	
 	/**
