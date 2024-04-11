@@ -24,6 +24,8 @@ import de.kobich.commons.ui.jface.progress.ProgressMonitorAdapter;
 /**
  * Abstract class for long-running operations and synchronization with the UI thread.
  * @author ckorn
+ * 
+ * deprecated use JFaceExec in future
  */
 public abstract class JFaceThreadRunner {
 	private static final Logger logger = Logger.getLogger(JFaceThreadRunner.class);
