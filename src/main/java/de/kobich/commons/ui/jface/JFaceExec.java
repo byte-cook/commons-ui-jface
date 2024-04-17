@@ -18,6 +18,9 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.progress.IProgressConstants;
 
+import de.kobich.commons.monitor.progress.IServiceProgressMonitor;
+import de.kobich.commons.type.Wrapper;
+import de.kobich.commons.ui.jface.progress.ProgressMonitorAdapter;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -89,7 +92,7 @@ public final class JFaceExec {
 	}
 	
 	private void runAllState(IProgressMonitor monitor) {
-		final TaskContext context = new TaskContext(this.parent, this.name, monitor, getDisplay());
+		final TaskContext context = new TaskContext(this.parent, this.name, new ProgressMonitorAdapter(monitor), getDisplay());
 		for (TaskStep subTask : steps) {
 			try {
 				subTask.run(context);
@@ -167,7 +170,7 @@ public final class JFaceExec {
 	public static final class TaskContext {
 		private final Shell parent;
 		private final String name;
-		private final IProgressMonitor monitor;
+		private final IServiceProgressMonitor progressMonitor;
 		private final Display display;
 		@Setter
 		private boolean cancelled;
