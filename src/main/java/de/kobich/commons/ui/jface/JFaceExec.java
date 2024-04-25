@@ -45,6 +45,7 @@ public final class JFaceExec {
 	private static final Logger logger = Logger.getLogger(JFaceExec.class);
 	private static final BiConsumer<TaskContext, Exception> DEFAULT_EXCEPTION_HANDLER = (ctx, exc) -> {
 		logger.error(exc.getMessage(), exc);
+		ctx.setCancelled(true);
 	};
 	
 	private final Shell parent;
@@ -67,47 +68,70 @@ public final class JFaceExec {
 		this.exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
 	}
 	
-	public JFaceExec ui(ITaskStep c) {
+	/**
+	 * Defines a task within UI thread
+	 * @param c
+	 * @return
+	 */
+	public JFaceExec ui(ITaskStepConsumer c) {
 		this.steps.add(new TaskStep(this, TaskStep.StepType.UI, c));
 		return this;
 	}
 	
-	public JFaceExec worker(ITaskStep c) {
+	/**
+	 * Defines a worker task outside UI thread
+	 * @param c
+	 * @return
+	 */
+	public JFaceExec worker(ITaskStepConsumer c) {
 		this.steps.add(new TaskStep(this, TaskStep.StepType.WORKER, c));
 		return this;
 	}
 	
+	/**
+	 * Sets the exception handler. All steps are always executed by default. Use {@link TaskContext#setCancelled(boolean)} to stop processing.
+	 * @param c
+	 * @return
+	 */
 	public JFaceExec exceptionally(BiConsumer<TaskContext, Exception> c) {
 		exceptionHandler = c;
 		return this;
 	}
 	
+	/**
+	 * Shows an error dialog with the given message and stops processing of the remaining steps. 
+	 * @param message
+	 * @return
+	 */
 	public JFaceExec exceptionalDialog(final String message) {
 		exceptionHandler = (ctx, exc) -> {
 				logger.error(exc.getMessage(), exc);
 				String msg = message + ": " + exc.getMessage();
 				MessageDialog.openError(ctx.getParent(), ctx.getName(), msg);
+				ctx.setCancelled(true);
 		};
 		return this;
 	}
 	
-	private void runAllState(IProgressMonitor monitor) {
+	private void runAllSteps(IProgressMonitor monitor) {
 		final TaskContext context = new TaskContext(this.parent, this.name, new ProgressMonitorAdapter(monitor), getDisplay());
 		for (TaskStep subTask : steps) {
 			try {
 				subTask.run(context);
-				if (context.isCancelled()) {
-					break;
-				}
 			}
 			catch (Exception exc) {
 				handleException(exc, context);
+			}
+			finally {
+				if (context.isCancelled()) {
+					break;
+				}
 			}
 		}
 	}
 
 	private void handleException(Exception exc, TaskContext context) {
-		exceptionHandler.accept(context, exc);
+		context.getDisplay().syncExec(() -> exceptionHandler.accept(context, exc));
 	}
 
 	/**
@@ -120,7 +144,7 @@ public final class JFaceExec {
 		Job job = new Job(this.name) {
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
-				runAllState(monitor);
+				runAllSteps(monitor);
 				return Status.OK_STATUS;
 			}
 		};
@@ -143,7 +167,7 @@ public final class JFaceExec {
 			pd.run(fork, cancelable, new IRunnableWithProgress() {
 				@Override
 				public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
-					runAllState(monitor);
+					runAllSteps(monitor);
 				}
 			});
 			return pd;
@@ -155,7 +179,7 @@ public final class JFaceExec {
 	}
 	
 	public void run() {
-		runAllState(null);
+		runAllSteps(null);
 	}
 
 	private Display getDisplay() {
@@ -177,7 +201,7 @@ public final class JFaceExec {
 	}
 	
 	@FunctionalInterface
-	public static interface ITaskStep {
+	public static interface ITaskStepConsumer {
 		void runStep(TaskContext context) throws Exception;
 	}
 	
@@ -187,7 +211,7 @@ public final class JFaceExec {
 		private enum StepType { UI, WORKER }
 		private final JFaceExec exec;
 		private final StepType type;
-		private final ITaskStep consumer;
+		private final ITaskStepConsumer consumer;
 		
 		public void run(TaskContext context) throws Exception {
 			switch (getType()) {
@@ -197,15 +221,12 @@ public final class JFaceExec {
 					break;
 				case UI:
 					// within UI thread
-					context.getDisplay().syncExec(new Runnable() {
-						@Override
-						public void run() {
-							try {
-								consumer.runStep(context);
-							}
-							catch (Exception exc) {
-								exec.handleException(exc, context);
-							}
+					context.getDisplay().syncExec(() -> {
+						try {
+							consumer.runStep(context);
+						}
+						catch (Exception exc) {
+							exec.handleException(exc, context);
 						}
 					});
 					break;
