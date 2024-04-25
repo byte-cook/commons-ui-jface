@@ -1,6 +1,5 @@
 package de.kobich.commons.ui.jface;
 
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -62,29 +61,6 @@ public enum JFaceUtils {
 		gridLayout.marginBottom = typeList.contains(JFaceUtils.MARGIN_BOTTOM) ? MARGIN_DIALOG : 0;
 		gridLayout.marginTop = typeList.contains(JFaceUtils.MARGIN_TOP) ? MARGIN_DIALOG : 0;
 		return gridLayout;
-	}
-
-	@Deprecated
-	public static GridLayout createGridLayoutWithoutSpace(int numColumns) {
-		GridLayout l = new GridLayout();
-		l.numColumns = numColumns;
-		l.marginLeft = 0;
-		l.marginRight = 0;
-		l.marginTop = 0;
-		l.marginBottom = 0;
-		l.marginWidth = 0;
-		l.marginHeight = 0;
-		return l;
-	}
-	
-	@Deprecated
-	public static GridLayout createGridLayoutWithSymmetricSpace(int numColumns, int marginLeftRight, int marginBottomTop, int marginHeightWidth) {
-		GridLayout l = new GridLayout();
-		l.numColumns = numColumns;
-		l.marginLeft = l.marginRight = marginLeftRight;
-		l.marginBottom = l.marginTop = marginBottomTop;
-		l.marginHeight = l.marginWidth = marginHeightWidth;
-		return l;
 	}
 	
 	public static GridData createGridDataWithSpan(int style, int horizontalSpan, int verticalSpan) {
