@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+import javax.annotation.Nullable;
+
 import org.apache.log4j.Logger;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.IJobManager;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
@@ -23,7 +27,6 @@ import de.kobich.commons.type.Wrapper;
 import de.kobich.commons.ui.jface.progress.ProgressMonitorAdapter;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 
 /**
  * Execution class for long-running operations and synchronization with the UI thread.<p/>
@@ -45,7 +48,7 @@ public final class JFaceExec {
 	private static final Logger logger = Logger.getLogger(JFaceExec.class);
 	private static final BiConsumer<TaskContext, Exception> DEFAULT_EXCEPTION_HANDLER = (ctx, exc) -> {
 		logger.error(exc.getMessage(), exc);
-		ctx.setCancelled(true);
+		ctx.setCanceled(true);
 	};
 	
 	private final Shell parent;
@@ -108,12 +111,12 @@ public final class JFaceExec {
 				logger.error(exc.getMessage(), exc);
 				String msg = message + ": " + exc.getMessage();
 				MessageDialog.openError(ctx.getParent(), ctx.getName(), msg);
-				ctx.setCancelled(true);
+				ctx.setCanceled(true);
 		};
 		return this;
 	}
 	
-	private void runAllSteps(IProgressMonitor monitor) {
+	private IStatus runAllSteps(IProgressMonitor monitor) {
 		final TaskContext context = new TaskContext(this.parent, this.name, new ProgressMonitorAdapter(monitor), getDisplay());
 		for (TaskStep subTask : steps) {
 			try {
@@ -123,11 +126,12 @@ public final class JFaceExec {
 				handleException(exc, context);
 			}
 			finally {
-				if (context.isCancelled()) {
-					break;
+				if (context.isCanceled()) {
+					return Status.CANCEL_STATUS;
 				}
 			}
 		}
+		return Status.OK_STATUS;
 	}
 
 	private void handleException(Exception exc, TaskContext context) {
@@ -139,13 +143,30 @@ public final class JFaceExec {
 	 * @param delay
 	 * @param user
 	 * @param system
+	 * @param image
 	 */
-	public Job runBackgroundJob(long delay, boolean user, boolean system, ImageDescriptor image) {
+	public void runBackgroundJob(long delay, boolean user, boolean system, @Nullable ImageDescriptor image) {
+		runBackgroundJob(delay, user, system, image, null);
+	}
+	
+	/**
+	 * Run this operation as background job
+	 * @param delay
+	 * @param user
+	 * @param system
+	 * @param image
+	 * @param object to identify a job family
+	 */
+	public Job runBackgroundJob(long delay, boolean user, boolean system, @Nullable ImageDescriptor image, @Nullable Object belongsToFamily) {
 		Job job = new Job(this.name) {
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
-				runAllSteps(monitor);
-				return Status.OK_STATUS;
+				return runAllSteps(monitor);
+			}
+			
+			@Override
+			public boolean belongsTo(Object family) {
+				return belongsToFamily != null && belongsToFamily.equals(family);
 			}
 		};
 		job.setUser(user);
@@ -153,6 +174,15 @@ public final class JFaceExec {
 		job.setProperty(IProgressConstants.ICON_PROPERTY, image);
 		job.schedule(delay);
 		return job;
+	}
+	
+	/**
+	 * Cancel jobs. This method internally calls {@link IProgressMonitor#setCanceled(boolean)} which will be evaluated by {@link TaskContext#isCanceled()}. 
+	 * @param family
+	 */
+	public static void cancelJobs(Object family) {
+		IJobManager manager = Job.getJobManager();
+		manager.cancel(family);
 	}
 
 	/**
@@ -173,7 +203,7 @@ public final class JFaceExec {
 			return pd;
 		}
 		catch (Exception e) {
-			handleException(e, new TaskContext(this.parent, this.name, null, getDisplay()));
+			handleException(e, new TaskContext(this.parent, this.name, new ProgressMonitorAdapter(new NullProgressMonitor()), getDisplay()));
 			return null;
 		}
 	}
@@ -196,8 +226,14 @@ public final class JFaceExec {
 		private final String name;
 		private final IServiceProgressMonitor progressMonitor;
 		private final Display display;
-		@Setter
-		private boolean cancelled;
+		
+		public boolean isCanceled() {
+			return progressMonitor.isCanceled();
+		}
+		
+		public void setCanceled(boolean b) {
+			progressMonitor.setCanceled(b);
+		}
 	}
 	
 	@FunctionalInterface
