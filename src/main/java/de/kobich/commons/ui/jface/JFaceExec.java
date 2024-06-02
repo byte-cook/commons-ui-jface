@@ -209,7 +209,7 @@ public final class JFaceExec {
 	}
 	
 	public void run() {
-		runAllSteps(null);
+		runAllSteps(new NullProgressMonitor());
 	}
 
 	private Display getDisplay() {
